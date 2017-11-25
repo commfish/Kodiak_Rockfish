@@ -5,3 +5,5 @@
 *.Rproj
 data
 literature
+*.tex
+text/User_Guide_files

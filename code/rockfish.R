@@ -3,7 +3,7 @@
 #
 # Author: William Gaeuman
 # Contact: william.gaeuman@alaska.gov
-# Last updated: 2017-11-03
+# Last updated: 2017-11-24
 #
 # Some details have still to be finalized...
 # ----
@@ -24,15 +24,19 @@ return(2 * asin(sqrt(a)) * 6362.8) # constant for Kodiak latitude
 
 } # END FUNCTION
 
-get_station_estimates <- function(station.dir.path, station.name, N, window = 21, grid = TRUE){
+get_station_estimates <- function(station.name, N, window = 21, grid = TRUE){
 # --------------------------------------------------------------------------------------------
+# station.name    = station name (character)
+# N               = number of transects
+# window          = moving-average window size for track position coords
+# grid            = Boolean indicator for grid vs star transect design
+  
 # Automatically loads required packages zoo, tidyverse and rgdal (and sp). Expects files 
 # track.csv, fish.csv, boundary.shp, boundary.shx, boundary.prj, boundary.dbf available in 
-# station directory. N = number of transects. window = moving-average window size for track 
-# position coords. Results are in terms of km.
-#
+# current working directory. Results are in terms of km.
+# 
 # Example: 
-# > get_station_estimates("C:/rockfish/data/NEGrid33", "NEGrid33", 11)
+# > get_station_estimates("NEGrid33", 11)
 #
 # (Function first plots data. Analyst must then delineate transects using cursor.)
 #
@@ -44,8 +48,6 @@ get_station_estimates <- function(station.dir.path, station.name, N, window = 21
 library(zoo, quietly = TRUE)
 library(tidyverse, quietly = TRUE)
 library(rgdal, quietly = TRUE)
-
-setwd(station.dir.path)
 
 # Get data, process and display
 suppressMessages(read_csv("fish.csv", na = "-9999") -> fish)
@@ -137,7 +139,7 @@ cbind(station = station.name, area = station.area, obs.fish = sum(fish.grp !=0 )
 
 } # END FUNCTION
 
-display_station_data <-function(station.dir.path, station.name, window = 21){
+display_station_data <-function(station.name, window = 21){
 # --------------------------------------------------------------------------
 # This is front end of function get_station_estimates() for data display, except 
 # neither number of transects nor estimation method are included in input.
@@ -146,8 +148,6 @@ display_station_data <-function(station.dir.path, station.name, window = 21){
 library(zoo, quietly = TRUE)
 library(tidyverse, quietly = TRUE)
 library(rgdal, quietly = TRUE)
-
-setwd(station.dir.path)
 
 # Get data, process and display
 suppressMessages(read_csv("fish.csv", na = "-9999") -> fish)
