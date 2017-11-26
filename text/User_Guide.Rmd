@@ -1,5 +1,5 @@
 ---
-title: "Kodiak Rockfish Hydroaccoustic Data Analysis Using R"
+title: "Kodiak Rockfish Hydroacoustic Data Analysis Using R"
 author: "William Gaeuman"
 date: "September 20, 2017"
 output: 
@@ -20,13 +20,13 @@ knitr::opts_chunk$set(
 )
 ```
 # Introduction
-This document describes the process for turning Echoview^[A product of Echoview Software Pty Ltd] accoustic rockfish data into estimates of station rockfish abundance and density using the graphical and statistical analysis software R. The first step involves creating a suitable directory stocked with the necessary input files. The second step involves invoking R and then loading and correctly running the required functions. This document additionally offers a peek under the hood for anyone so inclined.
+This document describes the process for turning Echoview^[A product of Echoview Software Pty Ltd] hydroacoustic rockfish data into estimates of station rockfish abundance and density using the graphical and statistical analysis software R. The first step involves creating a suitable directory stocked with the necessary input files. The second step involves invoking R and then loading and correctly running the required functions. This document additionally offers a peek under the hood for anyone so inclined.
 
 #Preliminaries
 You can install the most recent version of R on your computer by visiting the R Project website at <https://www.r-project.org>. Once you have R on board, you will also need to install the R packages *zoo*, *tidyverse*, *rgdal* and *sp*. (A "package" is essentially a collection of interrelated functions and associated object definitions designed to perform a set of specific tasks.) To do this, open the **Packages** menu inside R and click on **Install package(s)...**.  Unless you have done so previously, you will be prompted to select a **CRAN mirror** from a pop-up list. Choose a location more or less nearby, e.g. NOT in Bulgaria, and click **OK**. Another pop-up list will appear. Find and select the desired package and click **OK**. Note that once a package has been installed, it must be loaded during each new R session for it to be generally available. This can be arranged either through the **Load package** option in the **Packages** menu or by using the R function `library()` with the package name, without quotes, as the argument.
 
 # Analysis Procedure
-The rockfish data analysis proceeds station by station. The methods employed assume that the hydroacoustic data come from a single "track" that includes two or more sequential line transects across an individual rockfish station area. Both "grid" and "star" tracks are supported. The grid pattern ideally yields a set of equally spaced mutually parallel transects that are perpendicular to a fixed baseline. In star sampling, transects are traversed through a fixed common central point with equal angles between them like the spokes of a wheel. In theory, star transcect sampling should result in more efficient estimation of rockfish abundance and density when the distribution of fish is higly concentrated about the center of the pattern.
+The rockfish data analysis proceeds station by station. The methods employed assume that the hydroacoustic data come from a single "track" that includes two or more sequential line transects across an individual rockfish station area. Both "grid" and "star" tracks are supported. The grid pattern ideally yields a set of equally spaced mutually parallel transects that are perpendicular to a fixed baseline. In star sampling, transects are traversed through a fixed common central point with equal angles between them like the spokes of a wheel. In theory, star transect sampling should result in more efficient estimation of rockfish abundance and density when the distribution of fish is higly concentrated about the center of the pattern.
 
 ## Creating The Station Directory
 Given that your computer is equipped with R and the R packages *zoo*, *tidyverse*, *rgdal* and *sp*, the first step in the analysis is to create a station directory containing the following six files:
@@ -38,12 +38,12 @@ Given that your computer is equipped with R and the R packages *zoo*, *tidyverse
 5. *boundary.dbf*
 6. *boundary.prj*
 
-The first two files are **comma separated value files** that contain the accoustic data derived from the station track. Required covariates in the first file are ping time (hh:mm:ss.ss) and position coordinates in signed decimal degrees of latitude and longitude with corresponding column names *time*, *lat* and *lon*. Required covariates in the second file are these same three, also named *time*, *lat* and *lon*, plus *depth* expressed as a positive number in meters. The other four files are the `.shp, .shx, .dbf` and `.prj` components of the **shape file** that define the station area polygon. **Be advised that all of these name and file-type conventions are mandatory.** It is also expected that the analyst understand and be familiar with the data in these files and have exercised some reasonable level of quality control on their content.
+The first two files are **comma separated value files** that contain the hydroacoustic data derived from the station track. Required covariates in the first file are ping time (hh:mm:ss.ss) and position coordinates in signed decimal degrees of latitude and longitude with corresponding column names *time*, *lat* and *lon*. Required covariates in the second file are these same three, also named *time*, *lat* and *lon*, plus *depth* expressed as a positive number in meters. The other four files are the `.shp, .shx, .dbf` and `.prj` components of the **shape file** that define the station area polygon. **Be advised that all of these name and file-type conventions are mandatory.** It is also expected that the analyst understand and be familiar with the data in these files and have exercised some reasonable level of quality control on their content.
 
 ![The four required columns of the *fish.csv* file.](../figures/fish-file.png)
 
 ## Running The Analysis in R
-The tools used to analyze the rockfish hydroacoustic data are stored in the R "workspace" file *rockfish.RData*, which must be loaded into the current R session to make them available. This can be done in R either by navigating to the file through the **Load Workspace** option in the **File** menu or by using the R function `load()`. Workspace contents can then be examined using the function `ls()`. On a Windows machine, for example, you would use 
+The tools used to analyze the rockfish hydroacoustic data are stored in the R "workspace" file *rockfish.RData*, which must be loaded into the current R session to make them available. This can be done in R either by navigating to the file through the **Load Workspace** option in the **File** menu or by using the R function `load()`. Workspace contents can then be examined using the function `ls()`. On a Windows machine, for example, you would use sequence of commands
 ```{r fake load workspace, eval = FALSE}
 load("code/rockfish.RData")
 ls()
@@ -53,9 +53,9 @@ source("../code/rockfish.R")
 ls()
 ```
 
-to load the *rockfish.RData* workspace located in the *code* subdirectory of the current working directory and see a list of its contents, which currently consist of the three R functions `display_station_data()`, `get_haver_distance()` and `get_station_estimates()`.
+to load the *rockfish.RData* workspace located in the *code* subdirectory of the current working directory and view a list of its contents, which currently consist of the three R functions `display_station_data()`, `get_haver_distance()` and `get_station_estimates()`.
 
-The first function computes the great circle distance (km) between two points given in decimal degree latitude and longitude and is needed by the other two. The function `display_station_data()` plots the station track and area polygon with the positions of putative rockfish superimposed. Inputs are the station name (in quotes) and an optional `window` parameter specifying the the moving-average window size used to smooth track position coordinates, with default `window = 21`. The function `get_station_estimates()` computes station abundance and density estimates. Inputs to this function include those needed for function `display_station_data()`, along with the number of transects. The additional input `grid = FALSE` is required if star transect sampling was employed. Both functions automatically load the packages *zoo*, *tidyverse*, *rgdal* and *sp* provided these were previously installed; function execution will fail otherwise.  
+The first function computes the great circle distance (km) between two points given in decimal degree latitude and longitude and is needed by the other two. The function `display_station_data()` plots the station track and area polygon with the positions of putative rockfish superimposed. Inputs are the station name, in quotes, and an optional `window` parameter specifying the the moving-average window size used to smooth track position coordinates, with default `window = 21`. The function `get_station_estimates()` computes station abundance and density estimates. Inputs to this function include those needed for function `display_station_data()`, along with the number of transects. The additional input `grid = FALSE` is required if star transect sampling was employed. Both functions automatically load the packages *zoo*, *tidyverse*, *rgdal* and *sp* provided these were previously installed; function execution will fail otherwise.  
 
 As an example, suppose the *rockfish.RData* file has already been loaded, as above, and that the required six files are located in a local directory associated with grid sampling of 11 transects at a station named "NEGrid33". After navigating to the directory containing the files, station data are displayed using the command 
 
@@ -73,12 +73,12 @@ Station estimates of abundance and density may be obtained via the command
 ```{r get estimates, eval = FALSE}
 get_station_estimates("NEGrid33", 11)
 ```
-which first displays the data so that the analyst can use the cursor to delineate the individual transects by clicking on the endpoints of each one where it intersects the station boundary. The order is irrelevant so long as all definining points---in this case `11 x 2 = 22`---are selected exactly once. Note that the plot window can be resized to facilite this process. The function then computes and returns the various estimates---for this example  
+which first displays the data so that the analyst can use the cursor to delineate the individual transects by clicking on the endpoints of each one where it intersects the station boundary. The order is irrelevant so long as all definining points---in this case `11 x 2 = 22`---are selected exactly once. Note that the plot window can be resized to facilite this process. The function then computes and returns the various estimates, which for this example are  
   
 `#>    station    area obs.fish dens se.dens abund se.abund    cv`  
 `#> 1 NEGrid33 0.33553      400 5940    3223  1993     1081 0.543`  
 
-These results are also written to the station directory as file *estimates.csv*.
+The results are also written to the station directory as file *estimates.csv*.
 
 
 # A Quick Look Under The Hood
@@ -93,6 +93,42 @@ It is assumed that transects are made across the station region perpendicular to
 
 ### Star Transect Sampling
 It is assumed that transects are made across the station region through a known fixed point C in its interior. Let $(r_i,~\theta_i)$ give the location of fish $i$ in polar coordinates with the point C as orgin and, as above, let $d_i$ be its depth and $w(d_i)$ the effective width of the hyroacoustic beam at that depth. Provided that $r_i > \frac{w(d_i)}{2},$ a transect made through C at an angle $\psi$ selected uniformly at random from the interval $(0,~2\pi)$ will encounter an individual fish $i$ whenever one of $|\psi - \theta_i| < \sin^{-1}\left(\frac{\frac{w(d_i)}{2}}{r_i}\right)$ or $|\psi + \pi - \theta_i| < \sin^{-1}\left(\frac{\frac{w(d_i)}{2}}{r_i}\right)$ is true. It follows that the inclusion probability of such an individual is $\frac{2\sin^{-1}\left(\frac{w(d_i)}{2 r_i}\right)}{\pi},$ and the Horvitz-Thompson estimate ($\ref{HTN}$) for star transect sampling may be formulated as \begin{equation}\label{SHTN}\hat{N_S}=\frac{\pi}{2}\sum_{i\epsilon T}\frac{1}{\sin^{-1}\left(\frac{w(d_i)}{2 r_i}\right)}.\end{equation} This expression requires adjustment to account for any fish $i$ within a distance $\frac{w(d_i)}{2}$ of the point C, as, in theory, such individuals will necessarily be included in the sample and thus have inclusion probability equal to 1. (Note that in such a case the inverse sine $\sin^{-1}\left(\frac{w(d_i)}{2 r_i}\right)$ will be undefined.)  
+
+### Estimator Comparison 
+Star transect sampling of rockfish will generally perform better than grid transect sampling if the distribution of animals is more or less radially symmetric and concentrated about the center of the star pattern. In contrast to the grid-based Hovitz-Thompson estimator ($\ref{GHTN}$), the star-based Horvitz-Thompson estimator ($\ref{SHTN}$) is highly sensitive to the location of individual fish within the station region. To see this, consider the simple case of a rockfish station with a single fish at depth $d$. A randomly selected grid transect will encounter the lone fish with probability $\frac{w(d)}{L}$ and fail to encounter it with probability $1 - \frac{w(d)}{L}$. The expected value of the grid-based estimator is thus 
+
+\begin{eqnarray}
+\mathbb{E}(\hat{N_G}) & = & \frac{L}{w(d)} \cdot \frac{w(d)}{L} + 0 \cdot \left(1 - \frac{w(d)}{L}\right)\\
+& = & 1\\
+& = & N,
+\end{eqnarray}
+
+whereas its variance is
+
+\begin{eqnarray}
+\mathrm{Var}(\hat{N_G}) & = & \mathbb{E}(\hat{N_G}^{2}) - \mathbb{E}^{2}(\hat{N_G})\\
+& = & \left(\frac{L}{w(d)}\right)^{2} \cdot \frac{w(d)}{L} + 0^{2} \cdot \left(1 - \frac{w(d)}{L}\right) - 1^{2}\\
+& = & \frac{L}{w(d)} - 1,
+\end{eqnarray}
+
+which depends only on the fish's depth $d$. As for the star-based estimator, let $r$ be the fish's distance from the center of the star pattern and observe, first, that if the fish is sufficiently close to the center that $r < \frac{w(d)}{2}$, the estimator will perfectly estimate station rockfish abundance ($\hat{N_S} \equiv 1$) for all possible star transects and thus have zero variance. In the opposite case the expected value of the estimator is
+
+\begin{eqnarray}
+\mathbb{E}(\hat{N_S}) & = & \frac{\pi}{2 \sin^{-1}\left(\frac{w(d)}{2 r}\right)} \cdot \frac{2 \sin^{-1}\left(\frac{w(d)}{2 r}\right)}{\pi} + 0 \cdot \left(1 - \frac{2 \sin^{-1}\left(\frac{w(d)}{2 r}\right)}{\pi}\right)\\
+& = & 1\\
+& = & N,
+\end{eqnarray}
+
+and its variance is
+
+\begin{eqnarray}
+\mathrm{Var}(\hat{N_S}) & = & \mathbb{E}(\hat{N_S}^{2}) - \mathbb{E}^{2}(\hat{N_S})\\
+& = & \left(\frac{\pi}{2 \sin^{-1}\left(\frac{w(d)}{2 r}\right)}\right)^{2} \cdot \frac{2 \sin^{-1}\left(\frac{w(d)}{2 r}\right)}{\pi} + 0^{2} \cdot \left(1 - \frac{2 \sin^{-1}\left(\frac{w(d)}{2r}\right)}{\pi}\right) - 1^{2}\\
+& = & \frac{\pi}{2 \sin^{-1}\left(\frac{w(d)}{2 r}\right)},
+\end{eqnarray}
+
+which depends on the fish's distance from the center of the star pattern, as well as on it's depth. Moreover, for moderately large $r$, $\frac{w(d)}{2 r}$ will be small, $\sin^{-1}\left(\frac{w(d)}{2 r}\right)$ will be close to $\frac{w(d)}{2r}$, and we obtain the approximation \begin{equation}\label{vapprox}\mathrm{Var}(\hat{N_S}) \approx \frac{\pi}{w(d)} \cdot r.\end{equation}
+
 
 ## Implementation in R
 
