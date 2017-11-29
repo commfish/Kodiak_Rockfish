@@ -1,7 +1,7 @@
 ---
 title: "Kodiak Rockfish Hydroacoustic Data Analysis Using R"
 author: "William Gaeuman"
-date: "September 20, 2017"
+date: "November 29, 2017"
 output: 
   pdf_document:
     keep_tex: yes
@@ -95,9 +95,9 @@ It is assumed that transects are made across the station region perpendicular to
 It is assumed that transects are made across the station region through a known fixed point C in its interior. Let $(r_i,~\theta_i)$ give the location of fish $i$ in polar coordinates with the point C as origin and, as above, let $d_i$ be its depth and $w(d_i)$ the effective width of the hydroacoustic beam at that depth. Provided that $r_i > \frac{w(d_i)}{2},$ a transect made through C at an angle $\psi$ selected uniformly at random from the interval $(0,~2\pi)$ will encounter an individual fish $i$ whenever one of $|\psi - \theta_i| < \sin^{-1}\left(\frac{\frac{w(d_i)}{2}}{r_i}\right)$ or $|\psi + \pi - \theta_i| < \sin^{-1}\left(\frac{\frac{w(d_i)}{2}}{r_i}\right)$ is true. It follows that the inclusion probability of such an individual is $\frac{2\sin^{-1}\left(\frac{w(d_i)}{2 r_i}\right)}{\pi},$ and the Horvitz-Thompson estimate ($\ref{HTN}$) for star transect sampling may be formulated as \begin{equation}\label{SHTN}\hat{N_S}=\frac{\pi}{2}\sum_{i\epsilon T}\frac{1}{\sin^{-1}\left(\frac{w(d_i)}{2 r_i}\right)}.\end{equation} This expression requires adjustment to account for any fish $i$ within a distance $\frac{w(d_i)}{2}$ of the point C, as, in theory, such individuals will necessarily be included in the sample and thus have inclusion probability equal to 1. (Note that in such a case the inverse sine $\sin^{-1}\left(\frac{w(d_i)}{2 r_i}\right)$ will be undefined.)  
 
 ### Estimator Comparison 
-Star transect sampling of rockfish will generally perform better than grid transect sampling if the population of animals is concentrated about the center of the star pattern in a more or less radially symmetric distribution. In contrast to the grid-based Horvitz-Thompson estimator ($\ref{GHTN}$), the star-based Horvitz-Thompson estimator ($\ref{SHTN}$) is highly sensitive to the location of individual fish within the station region. To see this, consider the simple case of a rockfish station with a single fish at depth $d$. A randomly selected grid transect will encounter the lone fish with probability $\frac{w(d)}{L}$ and fail to encounter it with probability $1 - \frac{w(d)}{L}$. The expected value of the grid-based estimator is thus 
+Star transect sampling of rockfish will generally perform better than grid transect sampling if the population of animals is concentrated about the center of the star pattern in a more or less radially symmetric distribution. In contrast to the grid-based Horvitz-Thompson estimator ($\ref{GHTN}$), the star-based Horvitz-Thompson estimator ($\ref{SHTN}$) is highly sensitive to the location of individual fish within the station region. To see this, consider the simple case of a rockfish station with a single fish located away from the station boundary at depth $d$. A randomly selected grid transect will encounter the lone fish with probability $\frac{w(d)}{L}$ and fail to encounter it with probability $1 - \frac{w(d)}{L}$. The expected value of the grid-based estimator is thus 
 
-\begin{narrate}
+\begin{eqnarray}
 \mathbb{E}(\hat{N_G}) & = & \frac{L}{w(d)} \cdot \frac{w(d)}{L} + 0 \cdot \left(1 - \frac{w(d)}{L}\right)\\
 & = & 1\\
 & = & N,
@@ -111,7 +111,7 @@ and its variance is
 & = & \frac{L}{w(d)} - 1,
 \end{eqnarray}
 
-which depends only on the fish's depth $d$. As for the star-based estimator, if the fish's distance $r$ from the center of the star pattern satisfies $r < \frac{w(d)}{2}$, the estimator will perfectly estimate station rockfish abundance ($\hat{N_S} \equiv 1$) for all possible star transects and thus have zero variance. In the opposite case the expected value of the estimator is
+which depends only on the fish's depth $d$. As for the star-based estimator, if the fish is sufficiently close to the center of the star pattern that its distance $r$ from the center satisfies $r < \frac{w(d)}{2}$, the estimator will perfectly estimate station rockfish abundance ($\hat{N_S} \equiv 1$) for all possible star transects and thus have zero variance. In the opposite case the expected value of the estimator is
 
 \begin{eqnarray}
 \mathbb{E}(\hat{N_S}) & = & \frac{\pi}{2 \sin^{-1}\left(\frac{w(d)}{2 r}\right)} \cdot \frac{2 \sin^{-1}\left(\frac{w(d)}{2 r}\right)}{\pi} + 0 \cdot \left(1 - \frac{2 \sin^{-1}\left(\frac{w(d)}{2 r}\right)}{\pi}\right)\\
@@ -124,10 +124,10 @@ and its variance is
 \begin{eqnarray}
 \mathrm{Var}(\hat{N_S}) & = & \mathbb{E}(\hat{N_S}^{2}) - \mathbb{E}^{2}(\hat{N_S})\\
 & = & \left(\frac{\pi}{2 \sin^{-1}\left(\frac{w(d)}{2 r}\right)}\right)^{2} \cdot \frac{2 \sin^{-1}\left(\frac{w(d)}{2 r}\right)}{\pi} + 0^{2} \cdot \left(1 - \frac{2 \sin^{-1}\left(\frac{w(d)}{2r}\right)}{\pi}\right) - 1^{2}\\
-& = & \frac{\pi}{2 \sin^{-1}\left(\frac{w(d)}{2 r}\right)} - 1,
+& = & \frac{\pi}{2 \sin^{-1}\left(\frac{w(d)}{2 r}\right)} - 1.
 \end{eqnarray}
 
-which depends on the fish's distance from the center of the star pattern, as well as on it's depth. Moreover, for moderately large $r$, $\frac{w(d)}{2 r}$ will be small, $\sin^{-1}\left(\frac{w(d)}{2 r}\right)$ will be close to $\frac{w(d)}{2r}$, and we obtain the approximation \begin{equation}\label{vapprox}\mathrm{Var}(\hat{N_S}) \approx \frac{\pi}{w(d)} \cdot r.\end{equation}
+Note that the variance depends on the fish's distance from the center of the star pattern, as well as its depth. Moreover, for moderately large $r$, $\frac{w(d)}{2 r}$ will be small, $\sin^{-1}\left(\frac{w(d)}{2 r}\right)$ will be close to $\frac{w(d)}{2r}$, and we obtain the approximation \begin{equation}\label{vapprox}\mathrm{Var}(\hat{N_S}) \approx \frac{\pi}{w(d)} \cdot r.\end{equation}
 
 
 ## Implementation in R

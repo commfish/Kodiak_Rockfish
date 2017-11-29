@@ -7,3 +7,5 @@ data
 literature
 *.tex
 text/User_Guide_files
+*.md
+text/tex2pdf.12368
