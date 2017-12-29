@@ -1,7 +1,7 @@
 ---
 title: "Kodiak Rockfish Hydroacoustic Data Analysis Using R"
 author: "William Gaeuman"
-date: "November 29, 2017"
+date: "Dec 28, 2017"
 output: 
   pdf_document:
     keep_tex: yes
@@ -39,7 +39,7 @@ Given that your computer is equipped with R and the R packages *zoo*, *tidyverse
 6. *boundary.prj*
 7. either *baseline.csv* (grid transects) or *center.csv* (star transects)
 
-The first two files are `csv` (comma separated value) files that contain the hydroacoustic data derived from the station track. Required covariates in the first file are ping time (hh:mm:ss.ss) and position coordinates in signed decimal degrees of latitude and longitude with corresponding column names *time*, *lat* and *lon*. Required covariates in the second file are these same three, also named *time*, *lat* and *lon*, plus *depth* expressed as a positive number in meters. The other four files are the `.shp, .shx, .dbf` and `.prj` components of the **shape file** that define the station area polygon. **Be advised that all of these name and file-type conventions are mandatory.** It is also expected that the analyst understand and be familiar with the data in these files and have exercised some reasonable level of quality control on their content. The seventh required file is another `csv` file. In the case of grid transect sampling, the file is *baseline.csv* and consists a single column *L* containing a single number giving the length in meters of the orthogonal projection of the station area onto a line perpendicular to the transects; in the case of star transect sampling, the file is *center.csv* and consists of two columns *lat* and *lon* specifying the latitude and longitude of the star pattern center in decimal degrees.  
+The first two files are `csv` (comma separated value) files that contain the hydroacoustic data derived from the station track. Required covariates in the first file are ping time (hh:mm:ss.ss) and position coordinates in signed decimal degrees of latitude and longitude with corresponding column names *time*, *lat* and *lon*. Required covariates in the second file are these same three, also named *time*, *lat* and *lon*, plus *depth* expressed as a positive number in meters. The other four files are the `.shp, .shx, .dbf` and `.prj` components of the **shape file** that define the station area polygon. **Be advised that all of these name and file-type conventions are mandatory.** It is also expected that the analyst understand and be familiar with the data in these files and have exercised some reasonable level of quality control on their content. The seventh required file is another `csv` file. In the case of grid transect sampling, the file is *baseline.csv* and consists a single column *L* containing a single number giving the length in meters of the orthogonal projection of the station area onto a line perpendicular to the transects; in the case of star transect sampling, the file is *center.csv* and consists of two columns *lat* and *lon* specifying the latitude and longitude of the star pattern center in signed decimal degrees.  
 
 ![The four required columns of the *fish.csv* file.](../figures/fish-file.png)
 
@@ -54,7 +54,7 @@ source("../code/rockfish.R")
 ls()
 ```
 
-to load the *rockfish.RData* workspace located in the *code* sub directory of the current working directory and view a list of its contents, which consist of the three R functions `display_station_data()`, `get_haver_distance()` and `get_station_estimates()`.
+to load the *rockfish.RData* workspace located in the *code* subdirectory of the current working directory and view a list of its contents, which consist of the three R functions `display_station_data()`, `get_haver_distance()` and `get_station_estimates()`.
 
 The first function computes the great circle distance (km) between two points given in decimal degree latitude and longitude and is needed by the other two. The function `display_station_data()` plots the station track and area polygon with the positions of putative rockfish superimposed. Inputs are the station name, in quotes, and an optional `window` parameter specifying the the moving-average window size used to smooth track position coordinates, with default `window = 21`. The function `get_station_estimates()` computes station abundance and density estimates. Inputs to this function include those needed for function `display_station_data()`, along with the number of transects. The additional input `grid = FALSE` is required if star transect sampling was employed. Both functions automatically load the packages *zoo*, *tidyverse*, *rgdal* and *sp* provided these were previously installed; function execution will fail otherwise.  
 
