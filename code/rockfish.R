@@ -69,12 +69,13 @@ plot(boundary.coords, type = "l", xlab = "deg lon", ylab ="deg lat", main = past
 lines(track$lon, track$lat)
 points(jitter(fish$lon), fish$lat, col = 2, pch = 16)
 
-# Get transect endpoints and generate transect grouping variables ----
+# Interactively obtain transect endpoints ----
 endpoints <- sort(identify(track$lon, track$lat, n = 2 * N, plot = TRUE, atpen = TRUE, cex = 0.8, col = "purple"))
 
+# Generate grouping variable assigning fish to transects (fish not on an actual transect = 0 by default) ----
 trnsct.id <- integer(nrow(fish))
 for(k in 1:N){ 
-	trnsct.id[ fish$time > track$time[ endpoints[2 * k - 1] ] & fish$time < track$time[ endpoints[2 * k] ] ] <- k
+	trnsct.id[fish$time > track$time[endpoints[2 * k - 1]] & fish$time < track$time[endpoints[2 * k]]] <- k
 }
 
 # Calculate estimates ----
