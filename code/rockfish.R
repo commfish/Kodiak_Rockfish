@@ -30,6 +30,8 @@ get_station_estimates <- function(station.name, N, window = 21, grid = TRUE){
 # track.csv, fish.csv, boundary.shp, boundary.shx, boundary.prj, boundary.dbf available in 
 # current working directory. Results are in terms of km.
 # 
+# Note: Need to be in proper station directory to run these functions.
+#
 # Example: 
 # > get_station_estimates("NEGrid33", 11)
 #
@@ -38,6 +40,8 @@ get_station_estimates <- function(station.name, N, window = 21, grid = TRUE){
 # Output:
 #    station   area obs.fish  dens se.dens abund se.abund    cv
 # 1 NEGrid33 0.3355      398 27640   10970  9275     3681 0.397
+# 
+# Output also written to file estimates.csv in working (station) directory.
 # ----
 
 # Load necessary libraries ----
