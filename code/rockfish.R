@@ -72,32 +72,24 @@ points(jitter(fish$lon), fish$lat, col = 2, pch = 16)
 # Get transect endpoints and generate transect grouping variables ----
 endpoints <- sort(identify(track$lon, track$lat, n = 2 * N, plot = TRUE, atpen = TRUE, cex = 0.8, col = "purple"))
 
-trnsct.id <- integer(nrow(track))
-fish.grp <- integer(nrow(fish))
+trnsct.id <- integer(nrow(fish))
 for(k in 1:N){ 
-	trnsct.id[ endpoints[2 * k - 1]:endpoints[2 * k] ] <- k
-	fish.grp[ fish$time > track$time[ endpoints[2 * k - 1] ] & fish$time < track$time[ endpoints[2 * k] ] ] <- k
-	}
+	trnsct.id[ fish$time > track$time[ endpoints[2 * k - 1] ] & fish$time < track$time[ endpoints[2 * k] ] ] <- k
+}
 
 # Calculate estimates ----
 if(grid){
 	
 	# Grid methodology ----
   
-  # Get length of orthogonal projection of station area onto perpendicular ----
+  # Get length of orthogonal projection of station area onto baseline ----
   L <- read_csv("baseline.csv")[[1]] 
   
-  estimates <- mutate(fish, trnsct = fish.grp) %>% 
-    filter(trnsct != 0) %>% 
+  # Calculate grid transect Horwitz-Thompson abundance estimates ----
+  estimates <- mutate(fish, trnsct = trnsct.id) %>% 
+    filter(trnsct != 0) %>% # Remove fish not on an actual transect ----
     group_by(trnsct) %>% 
-    summarise(ht.abund = L * sum(1 / (0.108316 * depth))) %>%
-    left_join(tibble(trnsct = 1:N), ., by = "transct") %>% # Adjoin zero-fish transects, if any
-    mutate(ht.abund = replace(ht.abund, is.na(ht.abund), 0)) %>%
-    summarise(dens = mean(ht.abund) / station.area,
-              se.dens = sqrt(var(ht.abund) / N),
-              abund = station.area * dens,
-              se.abund = station.area * se.dens,
-              cv = round(se.abund / abund, 3))
+    summarise(ht.abund = L * sum(1 / (0.108316 * depth)))
   
 	} else {
 
@@ -107,28 +99,33 @@ if(grid){
   cntr <- read_csv("center.csv")
   cntr <- c(cntr$lon, cntr$lat)
 	
+  # Define helper function for computing distance of each fish from star center ----
 	d_to_cntr <- function(lon, lat) apply(cbind(lon, lat), 1, function(coords) get_haver_dist(c(cntr, coords)))
-	
-	suppressWarnings(trnsct.abund.estimates <- mutate(fish, trnsct = fish.grp,
-			           	                                        strip.wdth = 0.108316 * depth / 1000,
-				                                                  d.to.cntr = d_to_cntr(lon, lat),
-				                                                  sine = strip.wdth / (2 * d.to.cntr),
-				                                                  fish.wt = ifelse(sine < 1, pi / (2 * asin(sine)), 1))) %>%
-		filter(trnsct != 0) %>% 
+  
+  # Calculate star transect Horwitz-Thompson abundance estimates ---- 
+	estimates <- mutate(fish, trnsct = trnsct.id,
+			           	          strip.wdth = 0.108316 * depth / 1000,
+				                    d.to.cntr = d_to_cntr(lon, lat),
+				                    sine = strip.wdth / (2 * d.to.cntr),
+				                    fish.wt = ifelse(sine < 1, pi / (2 * asin(sine)), 1)) %>%
+    filter(trnsct != 0) %>% # Remove fish not on an actual transect ----
 		group_by(trnsct) %>% 
 		summarise(ht.abund = sum(fish.wt))
-	
-	estimates <- left_join(tibble(trnsct = 1:N), trnsct.abund.estimates, by = "trnsct") %>% # Adjoin zero-fish transects, if any
-		mutate(ht.abund = replace(ht.abund, is.na(ht.abund), 0)) %>%
-		summarise(dens = mean(ht.abund) / station.area,
-			   se.dens = sqrt(var(ht.abund) / N) / station.area,
-			   abund = station.area * dens,
-			   se.abund = station.area * se.dens,
-			   cv = round(se.dens / dens, 3))
 	}
 
-# Package results, store in a file, and return	
-cbind(station = station.name, area = station.area, obs.fish = sum(fish.grp !=0 ), signif(estimates, 4) ) %>% 
+# Include zero estimates for transects with no fish, if any ----
+estimates <- left_join(tibble(trnsct = 1:N), estimates, by = "trnsct") %>%
+  replace_na(list(ht.abund = 0)) %>%
+  
+  # Calculate overall estimates of abundance and density, standard errors and cv ----
+  summarise(dens = mean(ht.abund) / station.area,
+          se.dens = sqrt(var(ht.abund) / N),
+          abund = station.area * dens,
+          se.abund = station.area * se.dens,
+          cv = round(se.abund / abund, 3))
+
+# Package results, write to file estimates.csv, and return ----	
+cbind(station = station.name, area = station.area, obs.fish = sum(trnsct.id !=0 ), signif(estimates, 4) ) %>% 
 	write_csv("estimates.csv") %>% 
 	return()
 
