@@ -1,15 +1,11 @@
 # Functions for obtaining estimates of rockfish abundance and density from hyroacustic data.
-# -----------------------------------------------------------------------------------------
-#
+# ----
 # Author: William Gaeuman
 # Contact: william.gaeuman@alaska.gov
 # Last updated: 2017-11-24
-#
-# Some details have still to be finalized...
 # ----
 
 get_haver_dist <- function(coords){
-# --------------------------------
 # Computes great circle distance (km) between two points given 
 # lon, lat in decimal degrees using haversine formula. Coords is
 # a vector of form c(lon1, lat1, lon2, lat2). Called by functions 
@@ -25,7 +21,6 @@ return(2 * asin(sqrt(a)) * 6362.8) # constant for Kodiak latitude
 } # END FUNCTION
 
 get_station_estimates <- function(station.name, N, window = 21, grid = TRUE){
-# --------------------------------------------------------------------------------------------
 # station.name    = station name (character)
 # N               = number of transects
 # window          = moving-average window size for track position coords
@@ -45,11 +40,12 @@ get_station_estimates <- function(station.name, N, window = 21, grid = TRUE){
 # 1 NEGrid33 0.3355      398 27640   10970  9275     3681 0.397
 # ----
 
+# Load necessary libraries ----
 library(zoo, quietly = TRUE)
 library(tidyverse, quietly = TRUE)
 library(rgdal, quietly = TRUE)
 
-# Get data, process and display
+# Get data, process and display ----
 suppressMessages(read_csv("fish.csv", na = "-9999") -> fish)
 fish <- mutate(fish, time = as.character(time)) %>% 
 	arrange(time) %>% 
@@ -69,7 +65,7 @@ plot(boundary.coords, type = "l", xlab = "deg lon", ylab ="deg lat", main = past
 lines(track$lon, track$lat)
 points(jitter(fish$lon), fish$lat, col = 2, pch = 16)
 
-# Get transect endpoints and generate transect grouping variables
+# Get transect endpoints and generate transect grouping variables ----
 endpoints <- sort(identify(track$lon, track$lat, n = 2 * N, plot = TRUE, atpen = TRUE, cex = 0.8, col = "purple"))
 
 trnsct.id <- integer(nrow(track))
@@ -79,55 +75,50 @@ for(k in 1:N){
 	fish.grp[ fish$time > track$time[ endpoints[2 * k - 1] ] & fish$time < track$time[ endpoints[2 * k] ] ] <- k
 	}
 
-# Calculate estimates
+# Calculate estimates ----
 if(grid){
 	
-	# Grid methodology
-	get_trnsct_lngth <- function(lon, lat){
-		n <- length(lon)
-		coords <- cbind(lon[-n], lat[-n], lon[-1], lat[-1])
-		return(sum(apply(coords, 1, get_haver_dist)))
-		}
-	
-	trnsct.lngths <- mutate(track, trnsct = trnsct.id) %>% 
-		filter(trnsct != 0) %>% 
-		slice(seq(1, nrow(track), by = 20)) %>% 
-		group_by(trnsct) %>% 
-		summarise(lngth = get_trnsct_lngth(lon, lat))
-
-	wtd.fish.cnts <- mutate(fish, trnsct = fish.grp) %>% 
-		filter(trnsct != 0) %>% 
-		group_by(trnsct) %>% 
-		summarise(cnt = 1000 * sum(1 / (0.108316 * depth)))
-		
-	estimates <- left_join(trnsct.lngths, wtd.fish.cnts, by = "trnsct") %>%
-		mutate(cnt = replace(cnt, is.na(cnt), 0), trnsct.den = cnt / lngth * station.area) %>% 
-		summarise( dens = mean(trnsct.den), 
-		   	   se.dens = sqrt(var(trnsct.den) / N),  
-                           abund = station.area * dens, 
-                           se.abund = station.area * se.dens,
-		           cv = round(se.dens / dens, 3))
+	# Grid methodology ----
+  
+  # Get length of orthogonal projection of station area onto perpendicular ----
+  L <- read_csv("baseline.csv")[[1]] 
+  
+  estimates <- mutate(fish, trnsct = fish.grp) %>% 
+    filter(trnsct != 0) %>% 
+    group_by(trnsct) %>% 
+    summarise(ht.abund = L * sum(1 / (0.108316 * depth))) %>%
+    left_join(tibble(trnsct = 1:N), ., by = "transct") %>% # Adjoin zero-fish transects, if any
+    mutate(ht.abund = replace(ht.abund, is.na(ht.abund), 0)) %>%
+    summarise(dens = mean(ht.abund) / station.area,
+              se.dens = sqrt(var(ht.abund) / N),
+              abund = station.area * dens,
+              se.abund = station.area * se.dens,
+              cv = round(se.abund / abund, 3))
+  
 	} else {
 
-	# Star methodology
-	cntr <- c(-152.150, 57.804) # SURROGATE cntr FOR STATION NEG33; TBD HOW TO COME UP WITH THIS POINT IN GENERAL
-
+	# Star methodology ----
+	
+	# Get center point and make sure coords in proper order for distance calcs ----  
+  cntr <- read_csv("center.csv")
+  cntr <- c(cntr$lon, cntr$lat)
+	
 	d_to_cntr <- function(lon, lat) apply(cbind(lon, lat), 1, function(coords) get_haver_dist(c(cntr, coords)))
 	
 	suppressWarnings(trnsct.abund.estimates <- mutate(fish, trnsct = fish.grp,
-			           	                        strip.wdth = 0.108316 * depth / 1000,
-				                                d.to.cntr = d_to_cntr(lon, lat),
-				                                sine = strip.wdth / (2 * d.to.cntr),
-				                                fish.wt = ifelse(sine < 1, pi / (2 * asin(sine)), 1))) %>%
+			           	                                        strip.wdth = 0.108316 * depth / 1000,
+				                                                  d.to.cntr = d_to_cntr(lon, lat),
+				                                                  sine = strip.wdth / (2 * d.to.cntr),
+				                                                  fish.wt = ifelse(sine < 1, pi / (2 * asin(sine)), 1))) %>%
 		filter(trnsct != 0) %>% 
 		group_by(trnsct) %>% 
-		summarise(abund = sum(fish.wt))
+		summarise(ht.abund = sum(fish.wt))
 	
-	estimates <- left_join(tibble(trnsct = 1:N), trnsct.abund.estimates, by = "trnsct") %>%
-		mutate(abund = replace(abund, is.na(abund), 0)) %>%
-		summarise( dens = mean(abund) / station.area,
-			   se.dens = sqrt(var(abund) / N) / station.area,
-			   abund = mean(abund),
+	estimates <- left_join(tibble(trnsct = 1:N), trnsct.abund.estimates, by = "trnsct") %>% # Adjoin zero-fish transects, if any
+		mutate(ht.abund = replace(ht.abund, is.na(ht.abund), 0)) %>%
+		summarise(dens = mean(ht.abund) / station.area,
+			   se.dens = sqrt(var(ht.abund) / N) / station.area,
+			   abund = station.area * dens,
 			   se.abund = station.area * se.dens,
 			   cv = round(se.dens / dens, 3))
 	}
@@ -140,7 +131,6 @@ cbind(station = station.name, area = station.area, obs.fish = sum(fish.grp !=0 )
 } # END FUNCTION
 
 display_station_data <-function(station.name, window = 21){
-# --------------------------------------------------------------------------
 # This is front end of function get_station_estimates() for data display, except 
 # neither number of transects nor estimation method are included in input.
 #----
