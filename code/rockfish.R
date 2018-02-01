@@ -83,14 +83,14 @@ if(grid){
 	
 	# Grid methodology ----
   
-  # Get length of orthogonal projection of station area onto baseline ----
+  # Get length (m) of orthogonal projection of station area onto baseline ----
   L <- read_csv("baseline.csv")[[1]] 
   
   # Calculate grid transect Horwitz-Thompson abundance estimates ----
   estimates <- mutate(fish, trnsct = trnsct.id) %>% 
     filter(trnsct != 0) %>% # Remove fish not on an actual transect ----
     group_by(trnsct) %>% 
-    summarise(ht.abund = L * sum(1 / (0.108316 * depth)))
+    summarise(ht.abund = L * sum(1 / (0.108316 * depth))) # L and depth both in meters
   
 	} else {
 
@@ -100,15 +100,15 @@ if(grid){
   cntr <- read_csv("center.csv")
   cntr <- c(cntr$lon, cntr$lat)
 	
-  # Define helper function for computing distance of each fish from star center ----
+  # Define helper function for computing distance (km) of each fish from star center ----
 	d_to_cntr <- function(lon, lat) apply(cbind(lon, lat), 1, function(coords) get_haver_dist(c(cntr, coords)))
   
-  # Calculate star transect Horwitz-Thompson abundance estimates ---- 
-	estimates <- mutate(fish, trnsct = trnsct.id,
-			           	          strip.wdth = 0.108316 * depth / 1000,
-				                    d.to.cntr = d_to_cntr(lon, lat),
-				                    sine = strip.wdth / (2 * d.to.cntr),
-				                    fish.wt = ifelse(sine < 1, pi / (2 * asin(sine)), 1)) %>%
+  # Calculate star transect Horwitz-Thompson abundance estimates (strip.wdth and d.to.cntr both in meters) ---- 
+	estimates <- mutate(fish, trnsct = trnsct.id,	
+			          strip.wdth = 0.108316 * depth,
+				  d.to.cntr = d_to_cntr(lon, lat) * 1000,
+				  sine = strip.wdth / (2 * d.to.cntr),
+				  fish.wt = ifelse(sine < 1, pi / (2 * asin(sine)), 1)) %>%
     filter(trnsct != 0) %>% # Remove fish not on an actual transect ----
 		group_by(trnsct) %>% 
 		summarise(ht.abund = sum(fish.wt))
@@ -120,7 +120,7 @@ estimates <- left_join(tibble(trnsct = 1:N), estimates, by = "trnsct") %>%
   
   # Calculate overall estimates of abundance and density, standard errors and cv ----
   summarise(dens = mean(ht.abund) / station.area,
-          se.dens = sqrt(var(ht.abund) / N),
+          se.dens = sqrt(var(ht.abund) / N) / station.area,
           abund = station.area * dens,
           se.abund = station.area * se.dens,
           cv = round(se.abund / abund, 3))
