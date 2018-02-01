@@ -126,13 +126,13 @@ estimates <- left_join(tibble(trnsct = 1:N), estimates, by = "trnsct") %>%
           cv = round(se.abund / abund, 3))
 
 # Package results, write to file estimates.csv, and return ----	
-cbind(station = station.name, area = station.area, obs.fish = sum(trnsct.id !=0 ), signif(estimates, 4) ) %>% 
+cbind(station = station.name, area = station.area, num.trnscts = N, obs.fish = sum(trnsct.id !=0 ), signif(estimates, 4) ) %>% 
 	write_csv("estimates.csv") %>% 
 	return()
 
 } # END FUNCTION
 
-display_station_data <-function(station.name, window = 21){
+display_station_data <-function(station.name, grid = TRUE, window = 21){
 # This is front end of function get_station_estimates() for data display, except 
 # neither number of transects nor estimation method are included in input.
 #----
@@ -161,5 +161,11 @@ plot(boundary.coords, type="l", xlab="deg lon", ylab="deg lat", main = paste(sta
 	sub = paste("Total track fish count = ", nrow(fish),"; Average fish depth = ", round(mean(fish$depth), 1),"m"))
 lines(track$lon, track$lat)
 points(jitter(fish$lon), fish$lat, col=2, pch=16)
+
+# Plot star center for star transect sampling ----
+if(!grid) {
+	cntr <- read_csv("center.csv")
+	points(cntr$lon, cntr$lat, pch = 16, cex = 1.5)
+}
 
 } # END FUNCTION
