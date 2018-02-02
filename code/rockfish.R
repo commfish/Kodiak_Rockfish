@@ -2,7 +2,7 @@
 # ----
 # Author: William Gaeuman
 # Contact: william.gaeuman@alaska.gov
-# Last updated: 2017-11-24
+# Last updated: 2018-02-01
 # ----
 
 get_haver_dist <- function(coords){
