@@ -1,7 +1,7 @@
 ---
 title: "Kodiak Rockfish Hydroacoustic Data Analysis Using R"
 author: "William Gaeuman"
-date: "Dec 28, 2017"
+date: "Feb 1, 2018"
 output: 
   pdf_document:
     keep_tex: yes
@@ -26,7 +26,7 @@ This document describes the process for turning Echoview^[A product of Echoview 
 You can install the most recent version of R on your computer by visiting the R Project website at <https://www.r-project.org>. Once you have R on board, you will also need to install the R packages *zoo*, *tidyverse*, *rgdal* and *sp*. (A "package" is essentially a collection of interrelated functions and associated object definitions designed to perform a set of specific tasks.) To do this, open the **Packages** menu inside R and click on **Install package(s)...**.  Unless you have done so previously, you will be prompted to select a **CRAN mirror** from a pop-up list. Choose a location more or less nearby, e.g. NOT in Bulgaria, and click **OK**. Another pop-up list will appear. Find and select the desired package and click **OK**. Note that once a package has been installed, it must be loaded during each new R session for it to be generally available. This can be arranged either through the **Load package** option in the **Packages** menu or by using the R function `library()` with the package name, without quotes, as the argument.
 
 # Analysis Procedure
-The rockfish data analysis proceeds station by station. The methods employed assume that the hydroacoustic data come from a single "track" that includes two or more sequential line transects across an individual rockfish station area. Both "grid" and "star" tracks are supported. The grid pattern ideally yields a set of equally spaced mutually parallel transects that are perpendicular to a fixed baseline. In star sampling, transects are traversed through a fixed common central point with equal angles between them like the spokes of a wheel. In theory, star transect sampling should result in more efficient estimation of rockfish abundance and density when the distribution of fish is highly concentrated about the center of the pattern.
+The rockfish data analysis proceeds station by station. The methods employed assume that the hydroacoustic data come from a single "track" that includes two or more sequential line transects across an individual rockfish station area. Both "grid" and "star" tracks are supported. The grid pattern ideally yields a set of approximately equally spaced mutually parallel transects that are perpendicular to a fixed baseline. In star sampling, transects are traversed through a fixed common central point with roughly equal angles between them like the spokes of a wheel. In theory, star transect sampling should result in more efficient estimation of rockfish abundance and density when the distribution of fish is highly concentrated about the center of the pattern.
 
 ## Creating The Station Directory
 Given that your computer is equipped with R and the R packages *zoo*, *tidyverse*, *rgdal* and *sp*, the first step in the analysis is to create a station directory containing the following six files:
@@ -39,12 +39,12 @@ Given that your computer is equipped with R and the R packages *zoo*, *tidyverse
 6. *boundary.prj*
 7. either *baseline.csv* (grid transects) or *center.csv* (star transects)
 
-The first two files are `csv` (comma separated value) files that contain the hydroacoustic data derived from the station track. Required covariates in the first file are ping time (hh:mm:ss.ss) and position coordinates in signed decimal degrees of latitude and longitude with corresponding column names *time*, *lat* and *lon*. Required covariates in the second file are these same three, also named *time*, *lat* and *lon*, plus *depth* expressed as a positive number in meters. The other four files are the `.shp, .shx, .dbf` and `.prj` components of the **shape file** that define the station area polygon. **Be advised that all of these name and file-type conventions are mandatory.** It is also expected that the analyst understand and be familiar with the data in these files and have exercised some reasonable level of quality control on their content. The seventh required file is another `csv` file. In the case of grid transect sampling, the file is *baseline.csv* and consists a single column *L* containing a single number giving the length in meters of the orthogonal projection of the station area onto a line perpendicular to the transects; in the case of star transect sampling, the file is *center.csv* and consists of two columns *lat* and *lon* specifying the latitude and longitude of the star pattern center in signed decimal degrees.  
+The first two files are `csv` (comma separated value) files that contain the hydroacoustic data derived from the station track. Required covariates in the first file are ping time (hh:mm:ss.ss) and position coordinates in signed decimal degrees of latitude and longitude with corresponding column names *time*, *lat* and *lon*. Required covariates in the second file are these same three, also named *time*, *lat* and *lon*, plus *depth* expressed as a positive number in meters. The other four files are the `.shp, .shx, .dbf` and `.prj` components of the **shape file** that define the station area polygon. **Be advised that all of these name and file-type conventions are mandatory.** It is also expected that the analyst understand and be familiar with the data in these files and have exercised some reasonable level of quality control on their content. The seventh required file is another `csv` file. In the case of grid transect sampling, the file is *baseline.csv* and consists a single column *L* containing a single number giving the length in meters of the orthogonal projection of the station area onto a line perpendicular to the transects; in the case of star transect sampling, the file is *center.csv* and consists of two columns *lat* and *lon* specifying the latitude and longitude of the star pattern center in signed decimal degrees. Note that the position of this point has a profound impact on results in star-transect sampling and estimation.  
 
 ![The four required columns of the *fish.csv* file.](../figures/fish-file.png)
 
 ## Running The Analysis in R
-The tools used to analyze the rockfish hydroacoustic data are stored in the R "workspace" file *rockfish.RData*, which must be loaded into the current R session to make them available. This can be done in R either by navigating to the file through the **Load Workspace** option in the **File** menu or by using the R function `load()`. Workspace contents can then be examined using the function `ls()`. On a Windows machine, for example, you would use sequence of commands
+The tools used to analyze the rockfish hydroacoustic data are stored in the R "workspace" file *rockfish.RData*, which must be loaded into the current R session to make them available. This can be done in R either by navigating to the file through the **Load Workspace** option in the **File** menu or by using the R function `load()`. Workspace contents can then be examined using the function `ls()`. On a Windows machine, for example, you would use the sequence of commands
 ```{r fake load workspace, eval = FALSE}
 load("code/rockfish.RData")
 ls()
@@ -56,7 +56,7 @@ ls()
 
 to load the *rockfish.RData* workspace located in the *code* subdirectory of the current working directory and view a list of its contents, which consist of the three R functions `display_station_data()`, `get_haver_distance()` and `get_station_estimates()`.
 
-The first function computes the great circle distance (km) between two points given in decimal degree latitude and longitude and is needed by the other two. The function `display_station_data()` plots the station track and area polygon with the positions of putative rockfish superimposed. Inputs are the station name, in quotes, and an optional `window` parameter specifying the the moving-average window size used to smooth track position coordinates, with default `window = 21`. The additional input `grid = FALSE` triggers plotting of the center when displaying star-transect data. The function `get_station_estimates()` computes station abundance and density estimates. Inputs to this function include those needed for function `display_station_data()`, along with the number of transects. In this case, the input `grid = FALSE` is required if star transect sampling was employed. Both functions automatically load the packages *zoo*, *tidyverse*, *rgdal* and *sp* provided these were previously installed; function execution will fail otherwise.  
+The first function computes the great circle distance (km) between two points given in decimal degree latitude and longitude and is needed by the other two. The function `display_station_data()` plots the station track and area polygon with the positions of putative rockfish superimposed. Inputs are the station name, in quotes, and an optional `window` parameter specifying the the moving-average window size used to smooth track position coordinates, with default `window = 21`. The additional input `grid = FALSE` triggers plotting of the center point when displaying star-transect data. The function `get_station_estimates()` computes station abundance and density estimates. Inputs to this function include those needed for function `display_station_data()`, with `grid = FALSE` required if star-transect sampling was employed, along with the number of transects. Both functions automatically load the packages *zoo*, *tidyverse*, *rgdal* and *sp* provided these were previously installed; function execution will fail otherwise.  
 
 As an example, suppose the *rockfish.RData* file has already been loaded, as above, and that the required seven files are located in a local directory associated with grid sampling of 11 transects at a station named "NEGrid33". Either navigate to the directory containing the station files via the **Change directory...** option in the **File** menu or, equivalently, enter the R command `setwd("station directory pathname")` with the appropriate pathname to make it R's current working directory. Station data can then be displayed using the command
 
@@ -76,14 +76,14 @@ get_station_estimates("NEGrid33", N = 11)
 ```
 which first displays the data so that the analyst can use the cursor to delineate the individual transects by clicking on the endpoints of each one where it intersects the station boundary. The order is irrelevant so long as all defining points---in this case `11 x 2 = 22`---are selected exactly once. Note that the plot window can be resized to facilitate this process. The function then computes and returns the various estimates, which for this example are  
   
-`>    station    area num.trnscts obs.fish dens se.dens abund se.abund    cv`  
-`> 1 NEGrid33 0.33553          11      400 5940    3223  1993     1081 0.543`  
+`    station    area num.trnscts obs.fish dens se.dens abund se.abund    cv`  
+`1  NEGrid33 0.33553          11      400 5940    3223  1993     1081 0.543`  
 
-The results are also written to the station directory as file *estimates.csv*. Corresponding commands for displaying data and obtaining estimates of abundance and density at a station named "AS01" using star-transect sampling are
+The results are also written to the station directory as file *estimates.csv*. Corresponding commands for displaying data and obtaining estimates of abundance and density at a station named "AS01" using star-transect sampling with 5 transects are
 ```{r, eval = FALSE}
 display_station_data("AS01", grid = FALSE)
 
-get_station_estimates("AS01", N = 11, grid = FALSE)
+get_station_estimates("AS01", N = 5, grid = FALSE)
 
 ```
 
