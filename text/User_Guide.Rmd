@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 )
 ```
 # Introduction
-This document describes the process for turning Echoview^[A product of Echoview Software Pty Ltd] hydroacoustic rockfish data into estimates of station rockfish abundance and density using the graphical and statistical analysis software R. The first step involves creating a suitable directory stocked with the necessary input files. The second step involves invoking R and then loading and correctly running the required functions. This document additionally offers a peek under the hood for anyone so inclined.
+This document describes the process for turning Echoview^[A product of Echoview Software Pty Ltd] hydroacoustic rockfish data into estimates of station rockfish abundance and density using the graphical and statistical analysis software R. The first step involves creating a suitable directory stocked with the necessary input files. The second step involves invoking R and then loading and correctly running the required functions. This document additionally provides a mathematical description of the underlying estimators and offers some basic guidelines for survey design based on the nature and properties of those estimators. 
 
 #Preliminaries
 You can install the most recent version of R on your computer by visiting the R Project website at <https://www.r-project.org>. Once you have R on board, you will also need to install the R packages *zoo*, *tidyverse*, *rgdal* and *sp*. (A "package" is essentially a collection of interrelated functions and associated object definitions designed to perform a set of specific tasks.) To do this, open the **Packages** menu inside R and click on **Install package(s)...**.  Unless you have done so previously, you will be prompted to select a **CRAN mirror** from a pop-up list. Choose a location more or less nearby, e.g. NOT in Bulgaria, and click **OK**. Another pop-up list will appear. Find and select the desired package and click **OK**. Note that once a package has been installed, it must be loaded during each new R session for it to be generally available. This can be arranged either through the **Load package** option in the **Packages** menu or by using the R function `library()` with the package name, without quotes, as the argument.
@@ -56,7 +56,7 @@ ls()
 
 to load the *rockfish.RData* workspace located in the *code* subdirectory of the current working directory and view a list of its contents, which consist of the three R functions `display_station_data()`, `get_haver_distance()` and `get_station_estimates()`.
 
-The first function computes the great circle distance (km) between two points given in decimal degree latitude and longitude and is needed by the other two. The function `display_station_data()` plots the station track and area polygon with the positions of putative rockfish superimposed. Inputs are the station name, in quotes, and an optional `window` parameter specifying the the moving-average window size used to smooth track position coordinates, with default `window = 21`. The function `get_station_estimates()` computes station abundance and density estimates. Inputs to this function include those needed for function `display_station_data()`, along with the number of transects. The additional input `grid = FALSE` is required if star transect sampling was employed. Both functions automatically load the packages *zoo*, *tidyverse*, *rgdal* and *sp* provided these were previously installed; function execution will fail otherwise.  
+The first function computes the great circle distance (km) between two points given in decimal degree latitude and longitude and is needed by the other two. The function `display_station_data()` plots the station track and area polygon with the positions of putative rockfish superimposed. Inputs are the station name, in quotes, and an optional `window` parameter specifying the the moving-average window size used to smooth track position coordinates, with default `window = 21`. The additional input `grid = FALSE` triggers plotting of the center when displaying star-transect data. The function `get_station_estimates()` computes station abundance and density estimates. Inputs to this function include those needed for function `display_station_data()`, along with the number of transects. In this case, the input `grid = FALSE` is required if star transect sampling was employed. Both functions automatically load the packages *zoo*, *tidyverse*, *rgdal* and *sp* provided these were previously installed; function execution will fail otherwise.  
 
 As an example, suppose the *rockfish.RData* file has already been loaded, as above, and that the required seven files are located in a local directory associated with grid sampling of 11 transects at a station named "NEGrid33". Either navigate to the directory containing the station files via the **Change directory...** option in the **File** menu or, equivalently, enter the R command `setwd("station directory pathname")` with the appropriate pathname to make it R's current working directory. Station data can then be displayed using the command
 
@@ -72,30 +72,35 @@ display_station_data("NEGrid33")
 Station estimates of abundance and density may be obtained via the command
 
 ```{r get estimates, eval = FALSE}
-get_station_estimates("NEGrid33", 11)
+get_station_estimates("NEGrid33", N = 11)
 ```
 which first displays the data so that the analyst can use the cursor to delineate the individual transects by clicking on the endpoints of each one where it intersects the station boundary. The order is irrelevant so long as all defining points---in this case `11 x 2 = 22`---are selected exactly once. Note that the plot window can be resized to facilitate this process. The function then computes and returns the various estimates, which for this example are  
   
-`>    station    area obs.fish dens se.dens abund se.abund    cv`  
-`> 1 NEGrid33 0.33553      400 5940    3223  1993     1081 0.543`  
+`>    station    area num.trnscts obs.fish dens se.dens abund se.abund    cv`  
+`> 1 NEGrid33 0.33553          11      400 5940    3223  1993     1081 0.543`  
 
-The results are also written to the station directory as file *estimates.csv*.
+The results are also written to the station directory as file *estimates.csv*. Corresponding commands for displaying data and obtaining estimates of abundance and density at a station named "AS01" using star-transect sampling are
+```{r, eval = FALSE}
+display_station_data("AS01", grid = FALSE)
+
+get_station_estimates("AS01", N = 11, grid = FALSE)
+
+```
 
 
-# A Quick Look Under The Hood
-## Estimation Methods
+# Estimation Methods
 Function `get.station.estimates()` estimates rockfish station abundance and density using methods that are similar to those previously developed by Barnard *et al* (citation) but arise from straightforward application of standard sampling theory and are readily described in terms of it. For both grid and star transect designs, these methods are based on an appropriately constructed Horvitz-Thompson estimator (citation). Let $i = 1, 2, ..., N$ index the N individuals comprising the rockfish population at a station of known area $A$. Given a single transect made at random in accordance with the particular design, let $T$ be the set of indices associated with the individuals encountered. The Horvitz-Thompson estimate of rockfish station abundance is \begin{equation}\label{HTN}\hat{N}=\sum_{i\epsilon T}\frac{1}{\pi_i},\end{equation} where the "inclusion probability" $\pi_i$ is the probability that individual $i$ is included among the sampled rockfish. A natural estimate of rockfish station density $D=\frac{N}{A}$ is then \begin{equation}\label{HTD}\hat{D}=\frac{\hat{N}}{A}.\end{equation} Both of these estimators are easily shown to be theoretically unbiased under repeated random selection of transects (citation). 
 Suppose now that $\{\hat{N_j}\}$ is a set of $m \ge 2$ estimates of the form ($\ref{HTN}$) based on $m$ independent random transects from the particular design. By the standard theory of independent and identically distributed (i.i.d) random variables (citation), the estimator
 \begin{equation}\label{MHTN}\bar{\hat{N}}=\frac{1}{m}\sum_{j=1}^{m}\hat{N_j}\end{equation} unbiasedly estimates rockfish station abundance, and an unbiased estimator of its variance is \begin{equation}\label{MHTNV}\widehat{\mathrm{Var}}(\bar{\hat{N}})=\frac{1}{m}\sum_{j=1}^{m}\frac{(\hat{N_j}-\bar{\hat{N}})^2}{m-1}.\end{equation} Station rockfish density can then be estimated by \begin{equation}\label{MHTD}\bar{\hat{D}}=\frac{\bar{\hat{N}}}{A},\end{equation} with estimated variance
 \begin{equation}\label{MHTDV}\widehat{\mathrm{Var}}(\bar{\hat{D}})=\frac{\widehat{\mathrm{Var}}(\bar{\hat{N}})}{A^{2}}.\end{equation} Standard errors for the estimates of abundance ($\ref{MHTN}$) and density ($\ref{MHTD}$) are, respectively, \begin{equation}\label{SEN}SE(\bar{\hat{N}})=\sqrt{\widehat{\mathrm{Var}}(\bar{\hat{N}})}\end{equation} and \begin{equation}\label{SED}SE(\bar{\hat{D}})=\frac{1}{A}\sqrt{\widehat{\mathrm{Var}}(\bar{\hat{N}})}.\end{equation} Given a set of independent transects determined by a particular transect sampling design, whether grid or star or some other design, once the form of the estimator ($\ref{HTN}$) is determined, estimates of rockfish station abundance and density and their variances can be computed according to ($\ref{HTD}$)--($\ref{MHTDV}$), with standard errors given by ($\ref{SEN}$) and ($\ref{SED}$). The form of the Horvitz-Thompson estimator ($\ref{HTN}$) for both grid and star transect sampling is described below.
 
-### Grid Transect Sampling
+## Grid Transect Sampling
 It is assumed that transects are made across the station region perpendicular to a known fixed baseline. Let $l$ be the the orthogonal projection of the station region onto the baseline and let $L$ denote its length. Suppose now that a transect is made at a point $x$ selected uniformly at random along $l$. Provided that the projected position of fish $i$ along $l$ is sufficiently far from either endpoint, the probability that fish $i$ is included in the sample is then $\pi_i=\frac{w(d_i)}{L}$, where $d_i$ is the depth of fish $i$ and $w(d_i)$ is the effective width of the hydroacoustic beam at that depth. It follows that the Horvitz-Thompson estimate ($\ref{HTN}$) of rockfish station abundance is \begin{equation}\label{GHTN}\hat{N_G}=L\sum_{i\epsilon T}\frac{1}{w(d_i)}.\end{equation} If the projected position of a fish $i$ along $l$ is such that its distance $s_i$ from either endpoint of $l$ is less than $\frac{w(d_i)}{2}$, the inclusion probability of fish $i$ is $\frac{s_i + \frac{w(d_i)}{2}}{L}$ and the corresponding term of the estimator ($\ref{GHTN}$) must be modified accordingly.     
 
-### Star Transect Sampling
+## Star Transect Sampling
 It is assumed that transects are made across the station region through a known fixed point C in its interior. Let $(r_i,~\theta_i)$ give the location of fish $i$ in polar coordinates with the point C as origin and, as above, let $d_i$ be its depth and $w(d_i)$ the effective width of the hydroacoustic beam at that depth. Provided that $r_i > \frac{w(d_i)}{2},$ a transect made through C at an angle $\psi$ selected uniformly at random from the interval $(0,~2\pi)$ will encounter an individual fish $i$ whenever one of $|\psi - \theta_i| < \sin^{-1}\left(\frac{\frac{w(d_i)}{2}}{r_i}\right)$ or $|\psi + \pi - \theta_i| < \sin^{-1}\left(\frac{\frac{w(d_i)}{2}}{r_i}\right)$ is true. It follows that the inclusion probability of such an individual is $\frac{2\sin^{-1}\left(\frac{w(d_i)}{2 r_i}\right)}{\pi},$ and the Horvitz-Thompson estimate ($\ref{HTN}$) for star transect sampling may be formulated as \begin{equation}\label{SHTN}\hat{N_S}=\frac{\pi}{2}\sum_{i\epsilon T}\frac{1}{\sin^{-1}\left(\frac{w(d_i)}{2 r_i}\right)}.\end{equation} This expression requires adjustment to account for any fish $i$ within a distance $\frac{w(d_i)}{2}$ of the point C, as, in theory, such individuals will necessarily be included in the sample and thus have inclusion probability equal to 1. (Note that in such a case the inverse sine $\sin^{-1}\left(\frac{w(d_i)}{2 r_i}\right)$ will be undefined.)  
 
-### Estimator Comparison 
+## Estimator Comparison 
 Star transect sampling of rockfish will generally perform better than grid transect sampling if the population of animals is concentrated about the center of the star pattern in a more or less radially symmetric distribution. In contrast to the grid-based Horvitz-Thompson estimator ($\ref{GHTN}$), the star-based Horvitz-Thompson estimator ($\ref{SHTN}$) is highly sensitive to the location of individual fish within the station region. To see this, consider the simple case of a rockfish station with a single fish located away from the station boundary at depth $d$. A randomly selected grid transect will encounter the lone fish with probability $\frac{w(d)}{L}$ and fail to encounter it with probability $1 - \frac{w(d)}{L}$. The expected value of the grid-based estimator is thus 
 
 \begin{eqnarray}
@@ -130,7 +135,5 @@ and its variance is
 
 Note that the variance depends on the fish's distance from the center of the star pattern, as well as its depth. Moreover, for moderately large $r$, $\frac{w(d)}{2 r}$ will be small, $\sin^{-1}\left(\frac{w(d)}{2 r}\right)$ will be close to $\frac{w(d)}{2r}$, and we obtain the approximation \begin{equation}\label{vapprox}\mathrm{Var}(\hat{N_S}) \approx \frac{\pi}{w(d)} \cdot r.\end{equation}
 
-
-## Implementation in R
-
+# Some Guidelines for Survey Design 
 
